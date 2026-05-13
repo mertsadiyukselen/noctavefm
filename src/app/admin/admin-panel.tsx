@@ -2,11 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
+import { NoctaveLogo } from "@/components/noctave-logo";
+import type { SiteStatsDTO } from "@/types/stats";
 import type { TrackDTO } from "@/types/track";
 
-type Props = { initialTracks: TrackDTO[] };
+type Props = { initialTracks: TrackDTO[]; initialStats: SiteStatsDTO };
 
-export function AdminPanel({ initialTracks }: Props) {
+export function AdminPanel({ initialTracks, initialStats }: Props) {
   const router = useRouter();
   const [tracks, setTracks] = useState(initialTracks);
   const [title, setTitle] = useState("");
@@ -16,6 +18,13 @@ export function AdminPanel({ initialTracks }: Props) {
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+
+  const [liveViewers, setLiveViewers] = useState(String(initialStats.liveViewers));
+  const [totalListens, setTotalListens] = useState(String(initialStats.totalListens));
+  const [listeningNow, setListeningNow] = useState(String(initialStats.listeningNow));
+  const [statsMsg, setStatsMsg] = useState<string | null>(null);
+  const [statsErr, setStatsErr] = useState<string | null>(null);
+  const [statsBusy, setStatsBusy] = useState(false);
 
   const sorted = useMemo(
     () => [...tracks].sort((a, b) => a.sortOrder - b.sortOrder || a.title.localeCompare(b.title)),
@@ -107,12 +116,48 @@ export function AdminPanel({ initialTracks }: Props) {
     router.refresh();
   }
 
+  async function onSaveStats(e: React.FormEvent) {
+    e.preventDefault();
+    setStatsErr(null);
+    setStatsMsg(null);
+    setStatsBusy(true);
+    try {
+      const res = await fetch("/api/admin/stats", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          liveViewers: Math.max(0, Number.parseInt(liveViewers, 10) || 0),
+          totalListens: Math.max(0, Number.parseInt(totalListens, 10) || 0),
+          listeningNow: Math.max(0, Number.parseInt(listeningNow, 10) || 0),
+        }),
+      });
+      const data = (await res.json().catch(() => ({}))) as SiteStatsDTO & { error?: string };
+      if (!res.ok) {
+        setStatsErr(data.error ?? "Kaydedilemedi");
+        return;
+      }
+      setLiveViewers(String(data.liveViewers));
+      setTotalListens(String(data.totalListens));
+      setListeningNow(String(data.listeningNow));
+      setStatsMsg("İstatistikler güncellendi.");
+      router.refresh();
+    } catch {
+      setStatsErr("Ağ hatası");
+    } finally {
+      setStatsBusy(false);
+    }
+  }
+
   return (
     <div className="mx-auto max-w-5xl space-y-10">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="font-[family-name:var(--font-syne)] text-3xl font-bold">Kütüphane</h1>
-          <p className="text-sm text-[var(--muted)]">Ses ve kapak yükleyin; dosyalar sunucuda saklanır.</p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+          <NoctaveLogo className="h-9 w-auto max-w-[280px]" animated={false} />
+          <div>
+            <h1 className="font-[family-name:var(--font-syne)] text-3xl font-bold">Kütüphane</h1>
+            <p className="text-sm text-[var(--muted)]">Ses ve kapak yükleyin; dosyalar sunucuda saklanır.</p>
+          </div>
         </div>
         <div className="flex gap-2">
           <button
@@ -130,6 +175,56 @@ export function AdminPanel({ initialTracks }: Props) {
           </a>
         </div>
       </div>
+
+      <section className="glass rounded-3xl p-6 sm:p-8">
+        <h2 className="font-[family-name:var(--font-syne)] text-xl font-semibold">Sahte istatistikler</h2>
+        <p className="mt-2 text-sm text-[var(--muted)]">
+          Ana sayfadaki üç sayı tamamen gösterim amaçlıdır; gerçek analitik değildir.
+        </p>
+        <form onSubmit={onSaveStats} className="mt-6 grid gap-4 sm:grid-cols-3">
+          <label className="block text-sm text-[var(--muted)]">
+            Canlı izleyici
+            <input
+              type="number"
+              min={0}
+              value={liveViewers}
+              onChange={(e) => setLiveViewers(e.target.value)}
+              className="mt-2 w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-[var(--accent)]"
+            />
+          </label>
+          <label className="block text-sm text-[var(--muted)]">
+            Toplam dinlenme
+            <input
+              type="number"
+              min={0}
+              value={totalListens}
+              onChange={(e) => setTotalListens(e.target.value)}
+              className="mt-2 w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-[var(--accent)]"
+            />
+          </label>
+          <label className="block text-sm text-[var(--muted)]">
+            Şu an dinliyor
+            <input
+              type="number"
+              min={0}
+              value={listeningNow}
+              onChange={(e) => setListeningNow(e.target.value)}
+              className="mt-2 w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-[var(--accent)]"
+            />
+          </label>
+          <div className="sm:col-span-3">
+            {statsErr && <p className="text-sm text-red-300">{statsErr}</p>}
+            {statsMsg && <p className="text-sm text-[var(--accent-2)]">{statsMsg}</p>}
+            <button
+              type="submit"
+              disabled={statsBusy}
+              className="mt-3 rounded-2xl border border-white/15 bg-white/10 px-8 py-3 text-sm font-semibold text-white transition hover:bg-white/15 disabled:opacity-50"
+            >
+              {statsBusy ? "Kaydediliyor…" : "İstatistikleri kaydet"}
+            </button>
+          </div>
+        </form>
+      </section>
 
       <section className="glass rounded-3xl p-6 sm:p-8">
         <h2 className="font-[family-name:var(--font-syne)] text-xl font-semibold">Yeni şarkı</h2>

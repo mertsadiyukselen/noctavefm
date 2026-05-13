@@ -3,6 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { LiveStatsStrip } from "@/components/live-stats-strip";
+import { NoctaveLogo } from "@/components/noctave-logo";
 import type { TrackDTO } from "@/types/track";
 
 function formatTime(sec: number) {
@@ -136,16 +138,19 @@ export function NoctavePlayer() {
 
   return (
     <div className="relative flex min-h-screen flex-col overflow-hidden">
-      <header className="relative z-10 flex items-center justify-between px-5 py-5 sm:px-10">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--accent)] to-[var(--accent-2)] text-sm font-bold text-[#0a0a10] shadow-[0_0_28px_var(--glow)]">
-            N
-          </div>
+      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+        <div className="ambient-orb absolute -left-24 top-24 h-80 w-80 rounded-full bg-cyan-400/15 blur-3xl" />
+        <div className="ambient-orb--2 absolute -right-28 bottom-32 h-96 w-96 rounded-full bg-fuchsia-500/12 blur-3xl" />
+        <div className="absolute left-1/2 top-1/3 h-64 w-64 -translate-x-1/2 rounded-full bg-violet-600/10 blur-3xl" />
+      </div>
+
+      <header className="relative z-10 flex flex-col gap-5 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-10">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5">
+          <NoctaveLogo className="h-10 w-auto max-w-[min(100%,420px)] sm:h-12" />
+          <div className="hidden h-8 w-px bg-white/10 sm:block" aria-hidden />
           <div>
-            <p className="font-[family-name:var(--font-syne)] text-lg font-bold tracking-tight sm:text-xl">
-              Noctave FM
-            </p>
-            <p className="text-xs text-[var(--muted)]">Gece akışı · net ses · sade sıra</p>
+            <p className="text-xs font-medium uppercase tracking-[0.22em] text-[var(--accent-2)]">Synth night radio</p>
+            <p className="text-sm text-[var(--muted)]">Gece akışı · cam panel · neon sıra</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -165,8 +170,15 @@ export function NoctavePlayer() {
         </div>
       </header>
 
-      <main className="relative z-10 mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-5 pb-28 pt-4 sm:flex-row sm:px-10 sm:pb-24">
-        <section className="glass flex flex-1 flex-col overflow-hidden rounded-3xl p-6 sm:p-8">
+      <div className="relative z-10 pb-5">
+        <LiveStatsStrip />
+      </div>
+
+      <main className="relative z-10 mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-5 pb-28 pt-2 sm:flex-row sm:px-10 sm:pb-24">
+        <section
+          className="glass glass-reveal flex flex-1 flex-col overflow-hidden rounded-3xl p-6 sm:p-8"
+          style={{ animationDelay: "0.05s" }}
+        >
           <div className="flex flex-col gap-8 lg:flex-row lg:items-stretch">
             <div className="relative mx-auto aspect-square w-full max-w-[320px] shrink-0 overflow-hidden rounded-2xl ring-1 ring-white/10 lg:mx-0 lg:max-w-[280px]">
               {current?.coverPath ? (
@@ -267,7 +279,7 @@ export function NoctavePlayer() {
                     type="button"
                     onClick={togglePlay}
                     disabled={!current}
-                    className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--accent)] to-[#5a32e6] text-2xl text-white shadow-[0_12px_40px_rgba(124,92,255,0.35)] transition enabled:hover:brightness-110 disabled:opacity-30"
+                    className={`flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--accent)] to-[#5a32e6] text-2xl text-white shadow-[0_12px_40px_rgba(124,92,255,0.35)] transition enabled:hover:brightness-110 enabled:hover:scale-[1.03] active:scale-95 disabled:opacity-30 ${playing ? "play-pulse" : ""}`}
                     aria-label={playing ? "Duraklat" : "Oynat"}
                   >
                     {playing ? "⏸" : "▶"}
@@ -299,7 +311,10 @@ export function NoctavePlayer() {
           </div>
         </section>
 
-        <aside className="glass flex max-h-[560px] w-full flex-col rounded-3xl sm:w-[320px] sm:shrink-0">
+        <aside
+          className="glass glass-reveal flex max-h-[560px] w-full flex-col rounded-3xl sm:w-[320px] sm:shrink-0"
+          style={{ animationDelay: "0.18s" }}
+        >
           <div className="border-b border-white/10 px-5 py-4">
             <h2 className="font-[family-name:var(--font-syne)] text-lg font-semibold">Sıradaki</h2>
             <p className="text-xs text-[var(--muted)]">{tracks.length} parça</p>

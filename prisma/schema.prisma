@@ -16,3 +16,11 @@ model Track {
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
 }
+
+model SiteStats {
+  id             Int      @id @default(1)
+  liveViewers    Int      @default(220)
+  totalListens   Int      @default(1840020)
+  listeningNow   Int      @default(48)
+  updatedAt      DateTime @updatedAt
+}

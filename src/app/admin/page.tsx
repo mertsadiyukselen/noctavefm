@@ -1,13 +1,23 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getSiteStats } from "@/lib/site-stats";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
+import type { SiteStatsDTO } from "@/types/stats";
 import type { TrackDTO } from "@/types/track";
 import { AdminPanel } from "./admin-panel";
 
 export default async function AdminPage() {
   const session = await getSession();
   if (!session) redirect("/admin/login");
+
+  const statsRow = await getSiteStats();
+  const stats: SiteStatsDTO = {
+    liveViewers: statsRow.liveViewers,
+    totalListens: statsRow.totalListens,
+    listeningNow: statsRow.listeningNow,
+    updatedAt: statsRow.updatedAt.toISOString(),
+  };
 
   const rows = await prisma.track.findMany({
     orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
@@ -29,7 +39,7 @@ export default async function AdminPage() {
           ← Ana sayfa
         </Link>
       </div>
-      <AdminPanel initialTracks={tracks} />
+      <AdminPanel initialTracks={tracks} initialStats={stats} />
     </div>
   );
 }
